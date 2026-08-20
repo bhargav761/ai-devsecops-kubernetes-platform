@@ -1,8 +1,6 @@
-﻿CREATE DATABASE IF NOT EXISTS InstagramServicesPost;
-USE InstagramServicesPost;
+﻿CREATE DATABASE IF NOT EXISTS InstagramServicesUser;
+USE InstagramServicesUser;
 
-CREATE USER 'dbuser'@'localhost' IDENTIFIED BY 'Pa$$WorD';
-GRANT ALL PRIVILEGES ON * . * TO 'dbuser'@'localhost';
 
 DROP PROCEDURE IF EXISTS `POMELO_AFTER_ADD_PRIMARY_KEY`;
 DELIMITER //

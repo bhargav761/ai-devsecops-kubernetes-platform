@@ -86,7 +86,7 @@ CQRS pattern, Hangfire Job processing, RabbitMq Message Bus, Jwt Authentication,
 
 [comment]: # (> Seed Data:)
 [comment]: # (> Emails: ironman@gmail.com | spiderman@gmail.com | superman@gmail.com | hulk@gmail.com)
-[comment]: # (> Password: User@123)
+
 
 ## How to get Project Up & running -- In Production Environment
 [In Development]

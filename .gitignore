@@ -431,3 +431,15 @@ $RECYCLE.BIN/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# Kube-SecureOps local environment
+.env.dev
+
+# Local TLS certificates
+src/ApiGateway/*.crt
+src/ApiGateway/*.key
+src/ApiGateway/*.pem
+
+# Certificate backups
+src/ApiGateway/*.crt.old
+src/ApiGateway/*.key.old

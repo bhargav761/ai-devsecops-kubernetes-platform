@@ -1,8 +1,6 @@
 ﻿CREATE DATABASE IF NOT EXISTS InstagramServicesPost;
 USE InstagramServicesPost;
 
-CREATE USER 'dbuser'@'localhost' IDENTIFIED BY 'Pa$$WorD';
-GRANT ALL PRIVILEGES ON * . * TO 'dbuser'@'localhost';
 
 CREATE TABLE IF NOT EXISTS `__EFMigrationsHistory` (
     `MigrationId` varchar(95) NOT NULL,

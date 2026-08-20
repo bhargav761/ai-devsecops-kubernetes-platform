@@ -1,6 +1,7 @@
 version: "3.8"
 
 services:
+
   start-dependencies:
     image: dadarek/wait-for-dependencies
     depends_on:
@@ -11,22 +12,25 @@ services:
     container_name: rabbitmq
     image: rabbitmq:3-management
     restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: "guest"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD}"
     ports:
-      - '5672:5672'
-      - '15672:15672'
+      - "5672:5672"
+      - "15672:15672"
 
   mysql_db_service:
     container_name: mysql_db
     image: mysql:8.0.21
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: "Pa$$WorD"
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
     ports:
-      - '3306:3306'
+      - "3306:3306"
     expose:
-      - '3306'
+      - "3306"
     volumes:
-      - /home/mranonymous/Projects/Instagram-Volumes/mysql:/var/lib/mysql
+      - mysql:/var/lib/mysql
       - ./mysql/:/docker-entrypoint-initdb.d
 
   mongo_db_service:
@@ -34,9 +38,9 @@ services:
     image: mongo
     restart: always
     volumes:
-      - /home/mranonymous/Projects/Instagram-Volumes/mongo:/data/db
+      - mongo:/data/db
     ports:
-      - '27017:27017'
+      - "27017:27017"
 
   azurite_service:
     container_name: azurite
@@ -44,35 +48,64 @@ services:
     hostname: azurite
     restart: always
     volumes:
-        - "/home/mranonymous/Projects/Instagram-Volumes/Azurite:/data"
-        - "/home/mranonymous/Projects/Instagram-Volumes/Azurite/debug.log:/data/debug.log"
-        - "/etc/timezone:/etc/timezone:ro"
-        - "/etc/localtime:/etc/localtime:ro"
+      - azurite:/data
     expose:
-      - '10000'
-      - '10001'
+      - "10000"
+      - "10001"
     ports:
-    - 10000:10000
-    - 10001:10001
+      - "10000:10000"
+      - "10001:10001"
 
   user_service:
     container_name: user
-    build: ../src/Services/Instagram.Services.User
+    build:
+      context: ../src/Services
+      dockerfile: Instagram.Services.User/Dockerfile
     restart: always
+    environment:
+      JWT__SECRETKEY: "${JWT_SECRET_KEY}"
+
+      # Database
+      DB_PASSWORD: "${DB_PASSWORD}"
+      ConnectionStrings__DefaultConnection: "Server=mysql_db_service;Database=InstagramServicesUser;Uid=root;Password=${DB_PASSWORD};"
+
+      # RabbitMQ
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
+      rabbitmq__Password: "${RABBITMQ_PASSWORD}"
+
     expose:
-      - '9000'
+      - "9000"
+
     depends_on:
       - mysql_db_service
       - rabbitmq_service
 
   post_service:
     container_name: post
-    build: ../src/Services/Instagram.Services.Post
+    build:
+      context: ../src/Services
+      dockerfile: Instagram.Services.Post/Dockerfile
     restart: always
+    environment:
+      JWT__SECRETKEY: "${JWT_SECRET_KEY}"
+
+      # Database
+      DB_PASSWORD: "${DB_PASSWORD}"
+      ConnectionStrings__DefaultConnection: "Server=mysql_db_service;Database=InstagramServicesPost;Uid=root;Password=${DB_PASSWORD};"
+
+      # RabbitMQ
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
+      rabbitmq__Password: "${RABBITMQ_PASSWORD}"
+
+      # Azurite
+      AZURITE_ACCOUNT_KEY: "${AZURITE_ACCOUNT_KEY}"
+
     expose:
-      - '9001'
+      - "9001"
+
     volumes:
-        - "/home/mranonymous/Pictures:/home/mranonymous/Pictures"
+      - pictures:/home/mranonymous/Pictures
+
     depends_on:
       - mysql_db_service
       - user_service
@@ -81,42 +114,62 @@ services:
 
   newsfeed_service:
     container_name: newsfeed
-    build: ../src/Services/Instagram.Services.Newsfeed
+    build:
+      context: ../src/Services
+      dockerfile: Instagram.Services.Newsfeed/Dockerfile
     restart: always
+    environment:
+      JWT__SECRETKEY: "${JWT_SECRET_KEY}"
+
+      # RabbitMQ
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
+      rabbitmq__Password: "${RABBITMQ_PASSWORD}"
+
     expose:
-      - '9002'
+      - "9002"
+
     depends_on:
       - mongo_db_service
       - user_service
       - post_service
       - rabbitmq_service
-  
-  nginx_service: 
+
+  nginx_service:
     container_name: nginx_gateway
-    build: ../src/ApiGateway/
+    build:
+      context: ../src/ApiGateway
     restart: always
+
     depends_on:
       - user_service
       - post_service
       - newsfeed_service
+
     volumes:
-      - '../src/ApiGateway/default.conf:/etc/nginx/conf.d/default.conf'
+      - ../src/ApiGateway/default.conf:/etc/nginx/conf.d/default.conf
+
     ports:
       - "8080:80"
       - "4430:443"
 
   web_service:
     container_name: web
-    build: ../src/Web/
+    build:
+      context: ../src/Web
     restart: always
+
     volumes:
-      - '../src/Web/:/app'
-      - '/app/node_modules'
+      - ../src/Web:/app
+      - web_node_modules:/app/node_modules
+
     expose:
-      - '3000'
-    environment: 
-      # DONT USE IN PRODUCTION: Using cuz of Invalid Host Header
+      - "3000"
+
+    environment:
+      # DONT USE IN PRODUCTION:
+      # Required because of Invalid Host Header during local development
       DANGEROUSLY_DISABLE_HOST_CHECK: "true"
+
     stdin_open: true
 
 networks:
@@ -125,3 +178,7 @@ networks:
 
 volumes:
   mysql:
+  mongo:
+  azurite:
+  pictures:
+  web_node_modules:
